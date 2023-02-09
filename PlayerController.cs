@@ -20,6 +20,12 @@ public class PlayerController : MonoBehaviour
     private Animator playerAnimator;
     private bool isWalking = false;
 
+    public GameObject projectile;
+    public Transform projectilePos;
+
+    //testing health
+    CharacterStats cs;
+
     private void Awake() 
     {
         InputAction = new PlayerAction();
@@ -34,8 +40,14 @@ public class PlayerController : MonoBehaviour
 
         InputAction.Player.Shooting.performed += cntext => Shoot();
 
+        //test health
+        cs = GetComponent<CharacterStats>();
+        InputAction.Player.TakeDamage.performed += cntext => cs.TakeDamage(5);
+
         rb = GetComponent<Rigidbody>();
         playerAnimator = GetComponent<Animator>();
+
+        distanceToGround = GetComponent<Collider>().bounds.extents.y;
 
         cameraRotation = new Vector3(transform.rotation.x, transform.rotation.y, transform.rotation.z);
         Cursor.lockState = CursorLockMode.Locked;
@@ -55,11 +67,12 @@ public class PlayerController : MonoBehaviour
     private void Update() 
     {
         cameraRotation = new Vector3(cameraRotation.x + rotate.y, cameraRotation.y + rotate.x, cameraRotation.z); 
-
         transform.eulerAngles = new Vector3(transform.rotation.x, cameraRotation.y, transform.rotation.z);
 
         transform.Translate(Vector3.forward * move.y * Time.deltaTime * walkSpeed, Space.Self);
         transform.Translate(Vector3.right * move.x * Time.deltaTime * walkSpeed, Space.Self);
+
+        isGrounded = Physics.Raycast(transform.position, -Vector3.up, distanceToGround);
     }
 
     private void LateUpdate() 
@@ -75,12 +88,22 @@ public class PlayerController : MonoBehaviour
 
     private void Jump() 
     {
-        Debug.Log("Jump Boi");
+        if(isGrounded)
+        {
+            rb.velocity = new Vector3(rb.velocity.x, jump, rb.velocity.z);
+            Debug.Log("Jump Boi");
+        }
     }
 
     private void Shoot()
     {
-
+        Rigidbody rbBullet = Instantiate(projectile, projectilePos.position, Quaternion.identity).GetComponent<Rigidbody>();
+        rbBullet.AddForce(Vector3.forward * 32f, ForceMode.Impulse);
     }
 
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(transform.position, -Vector3.up * distanceToGround);
+    }
 }
